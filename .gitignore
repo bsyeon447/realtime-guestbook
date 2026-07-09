@@ -4,3 +4,19 @@ dist/
 server/uploads/*
 !server/uploads/.gitkeep
 npm-debug.log*
+# Dependencies
+/node_modules
+/client/node_modules
+/server/node_modules
+
+# Lock-files
+/package-lock.json
+/client/package-lock.json
+/server/package-lock.json
+
+# Build output
+/build
+/client/build
+
+# Unused folders
+/server

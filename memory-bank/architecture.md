@@ -1,48 +1,56 @@
-# 실시간 방명록 애플리케이션 아키텍처
+﻿# 실시간 방명록 애플리케이션 아키텍처 (Supabase 기반)
 
 ## 1. 시스템 구성도
 
 `
-+-----------------+      +-----------------+      +-----------------+
-|   Client (Web)  | <--> |   Web Server    | <--> |   DB/Storage    |
-| (React, Socket) |      | (Node, Express) |      | (JSON/MongoDB)  |
-+-----------------+      +-----------------+      +-----------------+
-        ^                        ^
-        |                        |
-        +------- Real-time ------+
-              (Socket.io)
++-----------------------+
+|    Client (React)     |
++-----------------------+
+           ^
+           | HTTPS / WebSocket
+           v
++-----------------------+
+|   Supabase Platform   |
+|-----------------------|
+| - Authentication      |
+| - Postgres Database   |
+| - Storage             |
+| - Realtime            |
+| - Edge Functions      |
++-----------------------+
+
 `
+
+*   **Client (React)**: 사용자와 상호작용하는 UI. Supabase 클라이언트 라이브러리(@supabase/supabase-js)를 통해 직접 Supabase와 통신합니다.
+*   **Supabase**: 백엔드의 모든 역할을 수행하는 BaaS(Backend as a Service) 플랫폼입니다.
 
 ## 2. 주요 기술 스택
 
 *   **프론트엔드 (Client)**
-    *   **React**: UI 컴포넌트 기반 개발
-    *   **Socket.io-client**: 실시간 웹소켓 통신
-    *   **React-Konva / HTML5 Canvas**: 그림판 기능 구현
-    *   **CSS / Styled-components**: 스타일링
+    *   **React**: UI 컴포넌트 기반 개발.
+    *   **@supabase/supabase-js**: Supabase와 통신하기 위한 클라이언트 라이브러리.
+    *   **React-Konva / HTML5 Canvas**: 그림판 기능 구현.
+    *   **CSS / Styled-components**: 스타일링.
 
-*   **백엔드 (Server)**
-    *   **Node.js**: 서버 사이드 런타임
-    *   **Express**: 웹 프레임워크 (API 엔드포인트)
-    *   **Socket.io**: 실시간 통신 및 이벤트 처리
-
-*   **데이터 저장소 (Storage)**
-    *   **초기**: 서버 메모리 또는 JSON 파일
-    *   **확장**: MongoDB 또는 SQLite 와 같은 데이터베이스
+*   **백엔드 (Supabase Platform)**
+    *   **PostgreSQL**: 모든 데이터를 저장하는 관계형 데이터베이스.
+    *   **Storage**: 사용자가 업로드한 이미지나 그림 파일을 저장합니다.
+    *   **Realtime**: 데이터베이스 변경 사항을 감지하여 연결된 클라이언트에게 실시간으로 브로드캐스트합니다.
+    *   **Authentication**: (선택) 사용자 인증 기능을 제공합니다.
+    *   **Edge Functions**: (선택) 복잡한 서버 사이드 로직이 필요할 경우 사용합니다.
 
 ## 3. 데이터 흐름
 
 ### 방명록 생성
-1.  **Client**: 사용자가 텍스트, 그림/사진을 입력하고 '등록' 버튼 클릭
-2.  **Client**: 그림은 Base64로 인코딩, 사진은 FormData로 감싸 서버에 HTTP POST 요청
-3.  **Server**: Express 엔드포인트가 요청 수신, 이미지 파일 서버에 저장, 데이터(텍스트, 이미지 경로) 가공
-4.  **Server**: 가공된 데이터를 DB/저장소에 저장
-5.  **Server**: Socket.io를 통해 'new-post' 이벤트를 모든 클라이언트에게 브로드캐스트 (새로운 포스트잇 데이터 포함)
-6.  **Client**: 이벤트를 수신한 모든 클라이언트는 화면에 새로운 포스트잇을 실시간으로 추가
+1.  **Client**: 사용자가 텍스트, 그림/사진을 입력하고 '등록' 버튼을 클릭합니다.
+2.  **Client**: 그림은 Blob/File 객체로 변환하고, @supabase/supabase-js를 사용하여 다음을 수행합니다:
+    a.  이미지/그림 파일을 **Supabase Storage**에 업로드합니다.
+    b.  업로드된 파일의 URL과 텍스트 메시지를 **Postgres Database**의 posts 테이블에 삽입합니다.
+3.  **Supabase Realtime**: posts 테이블의 INSERT 이벤트를 감지하고, 이 채널을 구독(subscribe) 중인 모든 클라이언트에게 새로운 데이터를 브로드캐스트합니다.
+4.  **Client**: 실시간 이벤트를 수신한 모든 클라이언트는 화면에 새로운 포스트잇을 즉시 추가합니다.
 
 ### 댓글 생성
-1.  **Client**: 사용자가 특정 포스트잇 상세 보기에서 댓글 입력 후 '등록'
-2.  **Client**: Socket.io를 통해 'new-comment' 이벤트를 서버로 전송 (포스트 ID, 댓글 내용 포함)
-3.  **Server**: 이벤트를 수신하여 해당 포스트 데이터에 댓글 추가 및 DB/저장소 업데이트
-4.  **Server**: Socket.io를 통해 해당 포스트를 보고 있는 모든 클라이언트에게 'comment-added' 이벤트 브로드캐스트 (업데이트된 댓글 목록 포함)
-5.  **Client**: 이벤트를 수신한 클라이언트는 댓글 목록을 실시간으로 업데이트
+1.  **Client**: 사용자가 댓글을 입력하고 '등록'합니다.
+2.  **Client**: @supabase/supabase-js를 사용하여 comments 테이블에 새로운 댓글 데이터(포스트 ID, 내용)를 삽입합니다.
+3.  **Supabase Realtime**: comments 테이블의 INSERT 이벤트를 감지하고, 해당 포스트를 보고 있는 클라이언트들에게 새로운 댓글 데이터를 브로드캐스트합니다.
+4.  **Client**: 이벤트를 수신한 클라이언트는 댓글 목록을 실시간으로 업데이트합니다.

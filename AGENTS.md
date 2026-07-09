@@ -1,9 +1,9 @@
-# Codex 에이전트를 위한 안내서
+﻿# Codex 에이전트를 위한 안내서
 
 이 문서는 이 프로젝트에서 Codex 에이전트가 작업을 수행할 때 따라야 할 지침을 담고 있습니다.
 
 ## 핵심 원칙
 
-*   **메모리 뱅크(Memory Bank) 우선 조회**: 작업을 시작하거나 수정하기 전, 항상 memory-bank/ 폴더 안의 architecture.md, progress.md, implementation-plan.md 파일을 먼저 확인하여 프로젝트의 전체 구조, 현재 진행 상황, 그리고 구현 계획을 파악해야 합니다.
+*   **메모리 뱅크(Memory Bank) 우선 조회**: 작업을 시작하거나 수정하기 전, 항상 memory-bank/ 폴더 안의 rchitecture.md, progress.md, implementation-plan.md 파일을 먼저 확인하여 프로젝트의 전체 구조, 현재 진행 상황, 그리고 구현 계획을 파악해야 합니다.
 *   **진행 상황 실시간 업데이트**: 코드 수정, 기능 추가 등 하나의 논리적인 작업 단위가 끝날 때마다 memory-bank/progress.md 파일을 업데이트하여 현재 상태를 정확하게 반영해야 합니다. 완료된 항목은 [x]로 표시합니다.
 *   **계획 기반 작업 수행**: memory-bank/implementation-plan.md에 명시된 단계와 계획을 기반으로 작업을 수행합니다. 만약 계획에 변경이 필요하다고 판단되면, 먼저 해당 문서를 수정한 후 실제 코드 변경 작업을 진행해야 합니다.
