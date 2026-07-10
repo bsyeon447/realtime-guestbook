@@ -1,45 +1,40 @@
-﻿# 구현 계획 (Supabase 기반)
+﻿# 구현 계획 (Next.js + Supabase)
 
-## 1단계: Supabase 프로젝트 설정 및 스키마 정의 (1.5시간)
+## 1단계: Next.js 프로젝트 설정 (1시간)
 
-1.  **Supabase 프로젝트 생성**: [Supabase 공식 홈페이지](https://supabase.com/)에서 새 프로젝트를 생성합니다.
-2.  **데이터베이스 테이블 설계**:
-    *   posts 테이블을 생성합니다. (id, created_at, message, image_url)
-    *   comments 테이블을 생성합니다. (id, created_at, post_id, content)
-        *   post_id는 posts 테이블의 id를 참조하는 외래 키(Foreign Key)로 설정합니다.
-3.  **저장소(Storage) 버킷 생성**: guestbook-images라는 이름의 공개(public) 버킷을 생성하여 이미지 파일을 저장합니다.
-4.  **Realtime 활성화**: posts와 comments 테이블에 대한 실시간 기능(Realtime)을 활성화합니다.
-5.  **.env 파일 설정**: React 앱에서 Supabase에 연결할 수 있도록 프로젝트 URL과 non 키를 .env 파일에 저장합니다.
+1.  **기존 디렉토리 정리**: 현재의 client와 server 폴더를 삭제합니다. (완료)
+2.  **Next.js 프로젝트 생성**: 프로젝트 루트 디렉토리에서 
+px create-next-app@latest 명령어를 실행하여 새 프로젝트를 생성합니다. (완료)
+3.  **라이브러리 설치**: 
+pm install @supabase/supabase-js react-konva konva (진행 중)
+4.  **.env.local 파일 설정**: 프로젝트 루트에 .env.local 파일을 생성하고 Supabase 프로젝트 URL과 non 키를 입력합니다.
+    `
+    NEXT_PUBLIC_SUPABASE_URL="YOUR_SUPABASE_URL"
+    NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+    `
+5.  **Supabase 클라이언트 설정**: lib/supabase/client.ts 파일을 생성하여 Supabase 클라이언트를 초기화하고 export합니다.
 
-## 2단계: 프론트엔드 환경 설정 및 Supabase 연동 (1시간)
+## 2단계: 핵심 페이지 및 컴포넌트 구현 (4시간)
 
-1.  **디렉토리 및 프로젝트 생성**:
-    *   최상단에 client 폴더를 생성하고, 그 안에서 
-px create-react-app .으로 React 프로젝트를 설정합니다. (이미 설정됨)
-2.  **라이브러리 설치**:
-    *   
-pm install @supabase/supabase-js react-konva konva
-3.  **Supabase 클라이언트 설정**:
-    *   src/supabaseClient.js 파일을 생성하여 Supabase 클라이언트를 초기화하고 export합니다. .env 파일의 환경 변수를 사용합니다.
+1.  **메인 페이지 (pp/page.tsx)**: 전체 애플리케이션의 레이아웃을 담당하고, 다른 컴포넌트들을 조합합니다.
+2.  **컴포넌트 구조화 (components/)**:
+    *   GuestbookForm.tsx: 텍스트 입력, 그림판, 파일 업로드 UI 포함. (Client Component: 'use client')
+    *   DrawingCanvas.tsx: eact-konva를 사용한 그림판 컴포넌트. (Client Component)
+    *   PostItGrid.tsx: 전체 방명록을 그리드 형태로 표시. (Client Component)
+3.  **방명록 조회 및 실시간 구독**: PostItGrid.tsx에서 초기 데이터 로드 및 Supabase Realtime 구독 로직을 구현합니다.
+4.  **방명록 작성 기능**: GuestbookForm.tsx에서 파일 업로드 및 데이터 삽입 로직을 구현합니다.
 
-## 3단계: 핵심 프론트엔드 기능 구현 (4시간)
+## 3단계: 상세 보기 및 댓글 기능 구현 (3시간)
 
-1.  **컴포넌트 구조화**: (기존 계획과 유사)
-    *   GuestbookForm.js, DrawingCanvas.js, PostItGrid.js, PostIt.js, PostDetailModal.js 등.
-2.  **방명록 목록 조회 및 실시간 구독**:
-    *   PostItGrid.js에서 컴포넌트 마운트 시 supabase.from('posts').select('*')를 호출하여 초기 데이터를 가져옵니다.
-    *   supabase.from('posts').on('INSERT', ...)를 사용하여 새로운 방명록이 추가될 때 상태(state)를 실시간으로 업데이트합니다.
-3.  **방명록 작성 기능**:
-    *   GuestbookForm.js에서 그림/이미지 파일을 **Supabase Storage**에 업로드합니다.
-    *   업로드 성공 후 반환된 URL과 메시지를 **posts 테이블**에 삽입합니다.
+1.  **동적 라우트 설정**: pp/post/[id]/page.tsx 경로를 생성하여 상세 페이지를 구현합니다.
+    *   또는, 모달(Modal) 방식으로 구현할 수도 있습니다. 이 경우 라우팅이 필요 없습니다.
+2.  **댓글 컴포넌트 (components/Comments.tsx)**: 댓글 목록 조회, 실시간 구독, 댓글 작성 기능을 포함합니다. (Client Component)
+3.  **기능 연동**: PostDetailModal (또는 페이지)에 Comments.tsx 컴포넌트를 통합합니다.
 
-## 4단계: 댓글 및 세부 기능 구현 (2.5시간)
+## 4단계: 스타일링 및 마무리 (1시간)
 
-1.  **댓글 기능 연동**:
-    *   PostDetailModal.js에서 해당 포스트의 댓글을 조회합니다. (supabase.from('comments').select('*').eq('post_id', postId))
-    *   새 댓글이 추가될 때 실시간으로 목록을 업데이트하기 위해 comments 테이블을 구독합니다.
-    *   댓글 입력 폼을 통해 comments 테이블에 데이터를 삽입합니다.
-2.  **스타일링 및 마무리**: 전체적인 UI/UX를 개선하고 최종 테스트를 진행합니다.
+1.  **Tailwind CSS 적용**: 생성된 컴포넌트들에 Tailwind CSS 유틸리티 클래스를 적용하여 디자인을 완성합니다.
+2.  **최종 테스트**: 모든 기능이 정상적으로 동작하는지 확인하고 버그를 수정합니다.
 
 ---
 **총 예상 소요 시간**: 약 9시간
