@@ -1,4 +1,10 @@
+'use client'; 
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import GuestbookForm from '@/components/GuestbookForm';
+import PostItGrid from '@/components/PostItGrid';
+import { Post } from '@/types'; // 올바른 경로
 
 const pageStyles: React.CSSProperties = {
   textAlign: 'center',
@@ -20,6 +26,47 @@ const pStyles: React.CSSProperties = {
 };
 
 export default function Home() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching posts:', error);
+      } else if (data) {
+        setPosts(data);
+      }
+      setLoading(false);
+    };
+
+    fetchPosts();
+
+    const channel = supabase
+      .channel('realtime posts')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'posts' },
+        (payload) => {
+          setPosts((prevPosts) => {
+            if (prevPosts.some(p => p.id === (payload.new as Post).id)) {
+              return prevPosts;
+            }
+            return [payload.new as Post, ...prevPosts];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return (
     <div style={pageStyles}>
       <header style={headerStyles}>
@@ -28,14 +75,12 @@ export default function Home() {
           메시지와 직접 그린 그림 또는 업로드한 사진을 포스트잇으로 공유하세요.
         </p>
       </header>
-      
-      <GuestbookForm />
-      
-      <section style={{ marginTop: '3rem' }}>
+
+      <GuestbookForm onNewPost={(newPost) => setPosts(prevPosts => [newPost, ...prevPosts])} />
+
+      <section style={{ marginTop: '3rem', padding: '0 1.5rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>모아보기</h2>
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#888', border: '2px dashed #ccc', borderRadius: '8px' }}>
-          방명록이 여기에 표시됩니다.
-        </div>
+        <PostItGrid posts={posts} loading={loading} />
       </section>
     </div>
   );

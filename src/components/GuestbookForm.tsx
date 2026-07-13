@@ -1,16 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, ComponentType } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import DrawingCanvas from './DrawingCanvas';
+import dynamic from 'next/dynamic';
+import { Post } from '@/types'; // <--- 이 경로를 수정했습니다.
 
-// Base64 Data URL을 File 객체로 변환하는 헬퍼 함수
+const DrawingCanvas = dynamic(() => import('./DrawingCanvas'), { ssr: false }) as ComponentType<any>;
+
+interface GuestbookFormProps {
+  onNewPost: (post: Post) => void;
+}
+
 const dataURLtoFile = (dataurl: string, filename: string): File => {
   const arr = dataurl.split(',');
   const mimeMatch = arr[0].match(/:(.*?);/);
-  if (!mimeMatch) {
-    throw new Error('Invalid data URL');
-  }
+  if (!mimeMatch) throw new Error('Invalid data URL');
   const mime = mimeMatch[1];
   const bstr = atob(arr[1]);
   let n = bstr.length;
@@ -21,9 +25,10 @@ const dataURLtoFile = (dataurl: string, filename: string): File => {
   return new File([u8arr], filename, { type: mime });
 };
 
-export default function GuestbookForm() {
+export default function GuestbookForm({ onNewPost }: GuestbookFormProps) {
   const [message, setMessage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  // ... (이하 나머지 코드는 이전과 동일하므로 생략)
   const [drawingDataUrl, setDrawingDataUrl] = useState('');
   const [mode, setMode] = useState('draw');
   const [status, setStatus] = useState('');
@@ -60,17 +65,21 @@ export default function GuestbookForm() {
           .from('guestbook')
           .getPublicUrl(filePath);
         
-        if (!urlData) throw new Error('Public URL을 가져오는 데 실패했습니다.');
+        if (!urlData) throw new Error('Public URL을 가져오는데 실패했습니다.');
         imageUrl = urlData.publicUrl;
       }
 
-      const { error: insertError } = await supabase.from('posts').insert([
-        { message, image_url: imageUrl },
-      ]);
+      const { data: insertedData, error: insertError } = await supabase
+        .from('posts')
+        .insert([{ message, image_url: imageUrl }])
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+      if (!insertedData) throw new Error('데이터 삽입 후 반환된 값이 없습니다.');
 
-      // 성공 처리
+      onNewPost(insertedData);
+
       setStatus('방명록이 등록되었습니다!');
       setMessage('');
       setImageFile(null);
@@ -90,7 +99,6 @@ export default function GuestbookForm() {
     }
   };
 
-  // 인라인 스타일 객체 (가독성을 위해 분리)
   const formStyle: React.CSSProperties = { padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' };
   const h2Style: React.CSSProperties = { fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' };
   const textareaStyle: React.CSSProperties = { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '0.375rem', transition: 'all 0.2s', minHeight: '80px' };
@@ -104,7 +112,7 @@ export default function GuestbookForm() {
     background: 'none', 
     border: 'none', 
     cursor: 'pointer',
-    marginBottom: '-1px' // 하단 보더와 겹치도록
+    marginBottom: '-1px'
   });
 
   return (
@@ -120,9 +128,9 @@ export default function GuestbookForm() {
         <div style={{ marginTop: '1rem' }}>
           <div style={tabContainerStyle}>
             <button type="button" style={getTabStyle('draw')} onClick={() => setMode('draw')}>그림 그리기</button>
-            <button type="button" style={getTabStyle('upload')} onClick={() => setMode('upload')}>사진 업로드</button>
+            <button type="button" style={{...getTabStyle('upload'), marginLeft: '0.5rem' }} onClick={() => setMode('upload')}>사진 업로드</button>
           </div>
-          <div style={{ paddingTop: '1rem' }}>
+          <div style={{ paddingTop: '1rem', minHeight: '305px' }}>
             {mode === 'draw' ? (
                 <DrawingCanvas ref={canvasRef} onChange={setDrawingDataUrl} />
             ) : (
