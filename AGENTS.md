@@ -11,6 +11,7 @@
 
 ## 2. 작업 흐름
 
-*   **메모리 뱅크(Memory Bank) 우선 조회**: 작업을 시작하기 전, 항상 memory-bank/ 폴더 안의 rchitecture.md, progress.md, implementation-plan.md 파일을 먼저 확인하여 프로젝트의 전체 구조, 현재 진행 상황, 그리고 구현 계획을 파악해야 합니다.
+*   **메모리 뱅크(Memory Bank) 우선 조회**: 작업을 시작하기 전, 항상 memory-bank/ 폴더 안의 architecture.md, progress.md, implementation-plan.md 파일을 먼저 확인하여 프로젝트의 전체 구조, 현재 진행 상황, 그리고 구현 계획을 파악해야 합니다.
+*   **PRD 및 Supabase 상태 관리**: 기능 요구사항 문서(PRD)는 memory-bank/ 폴더에 저장하며, 예를 들어 사용자 프로필 설정 기능 PRD는 memory-bank/prd-user-profile.md에 있습니다. Codex는 관련 기능을 설계하거나 구현할 때 해당 PRD를 명시적으로 참조하고, 작업 결과에 따라 memory-bank/ 폴더의 문서들을 항상 최신 상태로 유지해야 합니다. 또한 Supabase 테이블, RLS 정책, Storage 정책, Auth 설정 등 Supabase 상태를 확인하거나 변경할 때는 Supabase MCP 또는 Supabase CLI를 사용하여 로컬 코드, 문서, 원격 설정 간의 일관성을 유지해야 합니다.
 *   **진행 상황 실시간 업데이트**: 코드 수정, 기능 추가 등 하나의 논리적인 작업 단위가 끝날 때마다 memory-bank/progress.md 파일을 업데이트하여 현재 상태를 정확하게 반영해야 합니다. 완료된 항목은 [x]로 표시합니다.
 *   **계획 기반 작업 수행**: memory-bank/implementation-plan.md에 명시된 단계와 계획을 기반으로 작업을 수행합니다. 만약 계획에 변경이 필요하다고 판단되면, 먼저 해당 문서를 수정한 후 실제 코드 변경 작업을 진행해야 합니다.

@@ -1,10 +1,12 @@
-'use client'; 
+'use client';
 
 import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
+import AuthButton from '@/components/AuthButton';
 import GuestbookForm from '@/components/GuestbookForm';
 import PostItGrid from '@/components/PostItGrid';
-import { Post } from '@/types'; // 올바른 경로
+import { Post } from '@/types';
 
 const pageStyles: React.CSSProperties = {
   textAlign: 'center',
@@ -27,24 +29,44 @@ const pStyles: React.CSSProperties = {
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchPosts = async () => {
       const { data, error } = await supabase
         .from('posts')
-        .select('*')
+        .select('*, profiles(id, display_name, avatar_url, role)')
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching posts:', error);
-      } else if (data) {
-        setPosts(data);
+      } else if (data && mounted) {
+        setPosts(data as Post[]);
       }
-      setLoading(false);
+
+      if (mounted) {
+        setLoading(false);
+      }
     };
 
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (mounted) {
+        setUser(data.user);
+      }
+    };
+
+    fetchUser();
     fetchPosts();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
 
     const channel = supabase
       .channel('realtime posts')
@@ -53,34 +75,53 @@ export default function Home() {
         { event: 'INSERT', schema: 'public', table: 'posts' },
         (payload) => {
           setPosts((prevPosts) => {
-            if (prevPosts.some(p => p.id === (payload.new as Post).id)) {
+            const newPost = payload.new as Post;
+            if (prevPosts.some((post) => post.id === newPost.id)) {
               return prevPosts;
             }
-            return [payload.new as Post, ...prevPosts];
+            return [newPost, ...prevPosts];
           });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'posts' },
+        (payload) => {
+          setPosts((prevPosts) => prevPosts.filter((post) => post.id !== payload.old.id));
         }
       )
       .subscribe();
 
     return () => {
+      mounted = false;
+      subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
 
   return (
     <div style={pageStyles}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+        <AuthButton />
+      </div>
+
       <header style={headerStyles}>
-        <h1 style={h1Styles}>실시간 방명록</h1>
+        <h1 style={h1Styles}>Realtime Guestbook</h1>
         <p style={pStyles}>
-          메시지와 직접 그린 그림 또는 업로드한 사진을 포스트잇으로 공유하세요.
+          Share a message with a drawing or uploaded image. Sign in to write your own post.
         </p>
       </header>
 
-      <GuestbookForm onNewPost={(newPost) => setPosts(prevPosts => [newPost, ...prevPosts])} />
+      <GuestbookForm user={user} onNewPost={(newPost) => setPosts((prevPosts) => [newPost, ...prevPosts])} />
 
       <section style={{ marginTop: '3rem', padding: '0 1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>모아보기</h2>
-        <PostItGrid posts={posts} loading={loading} />
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>All posts</h2>
+        <PostItGrid
+          posts={posts}
+          loading={loading}
+          user={user}
+          onDelete={(postId) => setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId))}
+        />
       </section>
     </div>
   );

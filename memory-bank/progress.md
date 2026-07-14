@@ -21,3 +21,23 @@ pm install 로 의존성 설치 완료
 
 *   [ ] **4단계: 마무리**
     *   [ ] 전체 스타일링 및 최종 테스트
+
+*   [x] **인증/인가 계획 수립**
+    *   [x] memory-bank/auth-plan.md 작성
+
+*   [x] **인증/인가 코드 구현**
+    *   [x] @supabase/ssr 설치
+    *   [x] 브라우저/서버 Supabase 클라이언트 분리
+    *   [x] 인증 세션 갱신 middleware 추가
+    *   [x] 로그인/회원가입 페이지 및 auth callback route 추가
+    *   [x] 비로그인 사용자 작성 차단
+    *   [x] 인증 사용자 user_id 기반 글/이미지 작성 흐름 구현
+    *   [x] 본인 글 삭제 UI 및 삭제 로직 구현
+    *   [x] Supabase RLS/Storage 정책 SQL 파일 작성
+    *   [ ] Supabase 원격 DB 마이그레이션 적용 (현재 MCP read-only로 미적용)
+
+*   [x] **프로필 설정 기능 PRD 작성**
+    *   [x] memory-bank/prd-user-profile.md 작성
+
+*   [x] **에이전트 작업 지침 갱신**
+    *   [x] AGENTS.md에 PRD 참조, memory-bank 최신화, Supabase MCP/CLI 사용 원칙 추가
